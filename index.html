@@ -14,147 +14,105 @@
         .chat-scroll::-webkit-scrollbar { width: 4px; }
         .chat-scroll::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
         .tab-active { border-bottom: 4px solid #6366f1; color: #6366f1; font-weight: 900; }
+        [v-cloak] { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
 
-<div id="app">
+<div id="app" v-cloak>
     <div v-if="!isLoggedIn" class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
         <div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-pop border-b-8 border-indigo-600">
             <div class="text-center mb-8">
-                <div class="gradient-bg w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg"><i class="fas fa-user-graduate"></i></div>
+                <div class="gradient-bg w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4"><i class="fas fa-user-graduate"></i></div>
                 <h1 class="text-3xl font-black tracking-tighter italic">NoteShare<span class="text-indigo-600">Pro</span></h1>
-                <p class="text-slate-400 font-bold text-sm mt-2">Sign in to Access Engineering Notes</p>
+                <p class="text-slate-400 font-bold text-sm mt-2">Engineering Toppers Marketplace</p>
             </div>
             <div class="space-y-4">
-                <input v-model="authForm.email" type="email" placeholder="College Email ID" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition">
+                <input v-model="authForm.email" type="email" placeholder="Email ID" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition">
                 <input v-model="authForm.password" type="password" placeholder="Password" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 ring-indigo-500 transition">
-                <button @click="isLoggedIn = true" class="w-full gradient-bg text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-indigo-100 mt-4">LOGIN TO PORTAL</button>
+                <button @click="login" class="w-full gradient-bg text-white py-4 rounded-2xl font-black text-lg shadow-xl mt-4">LOGIN</button>
             </div>
         </div>
     </div>
 
     <div v-else class="animate-pop">
         <nav class="sticky top-0 z-[100] border-b bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-2 cursor-pointer" @click="selectedCat = 'All'">
+            <div class="flex items-center gap-2 cursor-pointer" @click="resetFilters">
                 <div class="gradient-bg p-2 rounded-xl text-white shadow-lg"><i class="fas fa-brain text-sm"></i></div>
                 <h1 class="text-xl font-black tracking-tighter">NoteShare<span class="text-indigo-600">Pro</span></h1>
             </div>
+
+            <div class="hidden md:flex flex-1 max-w-md mx-8">
+                <div class="relative w-full">
+                    <i class="fas fa-search absolute left-4 top-3 text-slate-400"></i>
+                    <input v-model="searchQuery" type="text" placeholder="Search by subject or topic..." class="w-full pl-12 pr-4 py-2 bg-slate-100 rounded-full border-none focus:ring-2 ring-indigo-400 text-sm">
+                </div>
+            </div>
+
             <div class="flex items-center gap-4">
-                <button @click="isAdmin = !isAdmin" class="text-[10px] font-black uppercase tracking-widest border px-3 py-2 rounded-full hover:bg-slate-50 transition">
-                    {{ isAdmin ? 'Student Mode' : 'Admin Panel' }}
-                </button>
-                <button @click="showUpload = true" class="gradient-bg text-white px-5 py-2 rounded-full font-bold text-sm shadow-lg hover:scale-105 transition">
-                    + Upload & Earn
-                </button>
-                <button @click="isLoggedIn = false" class="text-red-400 ml-2"><i class="fas fa-power-off"></i></button>
+                <div class="hidden lg:flex flex-col items-end mr-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">My Wallet</span>
+                    <span class="text-sm font-black text-green-600">₹{{totalEarnings}}</span>
+                </div>
+                <button @click="showUpload = true" class="gradient-bg text-white px-5 py-2 rounded-full font-bold text-sm shadow-lg hover:scale-105 transition">+ Upload</button>
+                <button @click="logout" class="text-red-400 ml-2 hover:scale-110 transition"><i class="fas fa-power-off"></i></button>
             </div>
         </nav>
 
-        <div class="bg-white border-b overflow-x-auto whitespace-nowrap px-6 flex gap-8">
+        <div class="bg-white border-b overflow-x-auto whitespace-nowrap px-6 flex gap-8 shadow-sm">
             <button v-for="cat in categories" @click="selectedCat = cat" :class="selectedCat === cat ? 'tab-active' : ''" class="py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all">
                 {{cat}}
             </button>
         </div>
 
         <main class="container mx-auto p-6">
-            <div v-if="!isAdmin">
-                <div class="text-center py-8">
-                    <h2 class="text-4xl font-black text-slate-800 tracking-tight">Engineering <span class="text-indigo-600 italic underline">Topper's Vault</span></h2>
-                    <p class="text-slate-400 font-bold mt-2">Buy & Sell handwritten notes for CSE, AI, ML & more.</p>
-                </div>
+            <div class="text-center py-8">
+                <h2 class="text-4xl font-black text-slate-800 tracking-tight leading-tight">Engineering <span class="text-indigo-600 italic underline decoration-wavy">Topper's Vault</span></h2>
+                <p class="text-slate-400 font-bold mt-2">Premium handwritten notes for B.Tech & Diploma.</p>
+            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                    <div v-for="(note, i) in filteredNotes" :key="i" class="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-2xl transition-all group relative">
-                        <div class="flex justify-between items-start mb-6">
-                            <span class="bg-indigo-50 text-indigo-600 text-[10px] px-3 py-1 rounded-full font-black uppercase italic">{{note.cat}}</span>
-                            <i v-if="note.isPremium" class="fas fa-crown text-yellow-500 text-xl"></i>
-                        </div>
-                        <h4 class="text-xl font-black text-slate-800 mb-8 leading-snug h-14 overflow-hidden">{{note.title}}</h4>
-                        <div class="flex items-center justify-between border-t pt-6">
-                            <span class="font-black text-2xl tracking-tighter text-slate-900">{{note.isPremium ? '₹49' : 'FREE'}}</span>
-                            <button @click="buyNote(note)" class="gradient-bg text-white px-6 py-3 rounded-2xl font-black text-xs hover:scale-105 transition tracking-widest shadow-lg shadow-indigo-100">
-                                {{ note.isPremium ? 'PURCHASE' : 'GET PDF' }}
-                            </button>
-                        </div>
+            <div v-if="filteredNotes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+                <div v-for="(note, i) in filteredNotes" :key="i" class="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="bg-indigo-50 text-indigo-600 text-[10px] px-3 py-1 rounded-full font-black uppercase italic">{{note.cat}}</span>
+                        <i v-if="note.isPremium" class="fas fa-crown text-yellow-500 text-xl"></i>
+                    </div>
+                    <h4 class="text-xl font-black text-slate-800 mb-8 leading-snug h-14 overflow-hidden group-hover:text-indigo-600 transition">{{note.title}}</h4>
+                    <div class="flex items-center justify-between border-t pt-6">
+                        <span class="font-black text-2xl tracking-tighter text-slate-900">{{note.isPremium ? '₹49' : 'FREE'}}</span>
+                        <button @click="buyNote(note)" class="gradient-bg text-white px-6 py-3 rounded-2xl font-black text-xs hover:scale-105 transition tracking-widest shadow-lg shadow-indigo-100 uppercase">
+                            {{ note.isPremium ? 'Purchase' : 'Download' }}
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div v-else>
-                <h2 class="text-2xl font-black mb-6 italic text-indigo-600">Admin Inventory Dashboard</h2>
-                <div class="bg-white rounded-3xl border overflow-hidden shadow-sm">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 font-bold uppercase text-slate-400">
-                            <tr><th class="p-4">Title</th><th class="p-4">Category</th><th class="p-4">File Name</th><th class="p-4 text-right">Action</th></tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="(n, i) in notes" :key="i">
-                                <td class="p-4 font-bold">{{n.title}}</td>
-                                <td class="p-4 text-xs font-bold">{{n.cat}}</td>
-                                <td class="p-4 text-xs text-slate-400 italic">{{n.fileName || 'system_gen.pdf'}}</td>
-                                <td class="p-4 text-right"><button @click="notes.splice(i, 1)" class="text-red-400"><i class="fas fa-trash"></i></button></td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div v-else class="text-center py-20 animate-pop">
+                <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-search text-slate-300 text-3xl"></i>
                 </div>
+                <h3 class="text-xl font-black text-slate-400 tracking-tighter italic uppercase">No matching notes found</h3>
+                <button @click="resetFilters" class="mt-4 text-indigo-600 font-bold text-sm underline">Show all notes</button>
             </div>
         </main>
 
         <div v-if="showUpload" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[200] flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl animate-pop relative border-t-8 border-indigo-600">
-                <h2 class="text-3xl font-black mb-2 text-slate-800 tracking-tighter">Upload & Earn</h2>
-                <p class="text-slate-400 text-sm mb-8 font-medium italic">Select your Engineering notes to publish.</p>
-                
-                <div class="space-y-5">
-                    <input v-model="form.title" type="text" placeholder="Note Title (e.g. CNN Deep Learning)" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 ring-indigo-500">
+                <h2 class="text-3xl font-black mb-2 text-slate-800 tracking-tighter leading-tight">Share Your Knowledge</h2>
+                <p class="text-slate-400 text-sm mb-8 italic">Choose subject and set your price.</p>
+                <div class="space-y-4">
+                    <input v-model="form.title" type="text" placeholder="Note Title (e.g. Unit 3 DBMS Notes)" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 ring-indigo-500">
                     <select v-model="form.cat" class="w-full p-4 bg-slate-50 border rounded-2xl outline-none">
                         <option v-for="c in categories" v-if="c != 'All'">{{c}}</option>
                     </select>
-                    
-                    <div class="relative border-2 border-dashed border-indigo-100 rounded-2xl p-8 text-center hover:bg-indigo-50 transition-all cursor-pointer">
-                        <input type="file" @change="handleFile" class="absolute inset-0 opacity-0 cursor-pointer">
-                        <i class="fas fa-file-pdf text-4xl text-indigo-400 mb-2"></i>
-                        <p class="text-sm font-black text-slate-600 italic tracking-tighter">{{ selectedFile ? selectedFile.name : 'Choose PDF/Image' }}</p>
+                    <div class="flex items-center gap-3 py-2">
+                        <input type="checkbox" v-model="form.isPremium" id="premiumCheck" class="w-6 h-6 accent-indigo-600 cursor-pointer">
+                        <label for="premiumCheck" class="font-black italic text-sm text-slate-600">Set as Premium (Earn ₹49 per download)</label>
                     </div>
-
-                    <div class="flex items-center gap-3 py-2 font-black italic text-sm">
-                        <input type="checkbox" v-model="form.isPremium" id="pCheck" class="w-5 h-5 accent-indigo-600">
-                        <label for="pCheck">Sell this for ₹49</label>
-                    </div>
-                    
                     <button @click="publishNow" class="w-full gradient-bg text-white py-5 rounded-[1.5rem] font-black text-xl shadow-xl shadow-indigo-100 uppercase tracking-widest">PUBLISH NOW</button>
                     <button @click="showUpload = false" class="w-full text-slate-400 font-bold text-xs mt-2">CLOSE</button>
                 </div>
             </div>
-        </div>
-
-        <div class="fixed bottom-8 right-8 z-[200]">
-            <div v-if="chatOpen" class="bg-white w-85 md:w-96 h-[520px] shadow-2xl rounded-[2.5rem] overflow-hidden flex flex-col border border-indigo-100 mb-4 animate-pop shadow-indigo-200/50">
-                <div class="gradient-bg p-5 text-white flex justify-between items-center shadow-lg">
-                    <div class="flex items-center gap-3">
-                        <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400"></div>
-                        <span class="font-black italic tracking-tighter">Gemini Professor</span>
-                    </div>
-                    <button @click="chatOpen = false">✕</button>
-                </div>
-                <div class="flex-1 p-5 overflow-y-auto text-sm space-y-4 bg-slate-50 chat-scroll" id="chatbox">
-                    <div v-for="msg in chatMessages" :class="msg.role === 'user' ? 'text-right' : 'text-left'">
-                        <div :class="msg.role === 'user' ? 'gradient-bg text-white shadow-lg' : 'bg-white text-slate-700 shadow-sm border'" class="inline-block p-4 rounded-3xl max-w-[85%] font-medium">
-                            {{ msg.text }}
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 border-t bg-white flex gap-3">
-                    <input v-model="userMsg" @keyup.enter="callGemini" type="text" placeholder="Ask any engineering doubt..." class="flex-1 text-sm p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 ring-indigo-500">
-                    <button @click="callGemini" class="gradient-bg text-white w-14 h-14 rounded-2xl hover:scale-105 transition shadow-lg">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
-            <button @click="chatOpen = !chatOpen" class="gradient-bg text-white w-16 h-16 rounded-2xl shadow-2xl flex items-center justify-center text-3xl hover:rotate-12 transition transform hover:scale-110 shadow-indigo-400/40">
-                <i :class="chatOpen ? 'fas fa-times' : 'fas fa-brain'"></i>
-            </button>
         </div>
     </div>
 </div>
@@ -164,65 +122,85 @@
     createApp({
         data() {
             return {
-                isLoggedIn: false, isAdmin: false, showUpload: false, chatOpen: false,
-                selectedCat: 'All', userMsg: '', selectedFile: null,
+                isLoggedIn: false, showUpload: false, searchQuery: '',
+                selectedCat: 'All', totalEarnings: 0,
                 authForm: { email: '', password: '' },
                 form: { title: '', cat: 'AI & ML', isPremium: false },
-                apiKey: 'YAHAN_APNI_GEMINI_KEY_DALEIN', // <-- Paste your real API key here
-                categories: ['All', 'AI & ML', 'Data Science', 'Core CSE', 'Mechanical', 'Electrical'],
-                chatMessages: [{ role: 'bot', text: 'Engineering Assistant ready. Ask me any technical doubt or syllabus question!' }],
-                notes: [
-                    { title: 'Neural Networks & Deep Learning Full Notes', cat: 'AI & ML', isPremium: true, fileName: 'nn_unit1.pdf' },
-                    { title: 'Operating Systems: CPU Scheduling Algorithms', cat: 'Core CSE', isPremium: false, fileName: 'os_notes.pdf' },
-                    { title: 'Data Structures (DSA) Solved Sheet', cat: 'Core CSE', isPremium: true, fileName: 'dsa.pdf' },
-                    { title: 'Statistical Inference for Data Science', cat: 'Data Science', isPremium: false, fileName: 'stats.pdf' },
-                    { title: 'Thermodynamics Laws & Numerical Guide', cat: 'Mechanical', isPremium: true, fileName: 'mech.pdf' },
-                    { title: 'Digital Electronics Logic Gates Setup', cat: 'Electrical', isPremium: false, fileName: 'ee.pdf' }
-                ]
+                categories: ['All', 'AI & ML', 'Data Science', 'Core CSE', 'Mechanical', 'Electrical', 'Electronics'],
+                notes: []
             }
         },
         computed: {
             filteredNotes() {
-                if(this.selectedCat === 'All') return this.notes;
-                return this.notes.filter(n => n.cat === this.selectedCat);
+                let temp = this.notes;
+                if(this.selectedCat !== 'All') temp = temp.filter(n => n.cat === this.selectedCat);
+                if(this.searchQuery) {
+                    temp = temp.filter(n => n.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                }
+                return temp;
             }
         },
+        mounted() {
+            // All Subjects Initial Notes Data
+            const initialNotes = [
+                // AI & ML
+                { title: 'Neural Networks & Deep Learning Full Notes', cat: 'AI & ML', isPremium: true },
+                { title: 'Machine Learning Algorithms - Cheat Sheet', cat: 'AI & ML', isPremium: false },
+                // Data Science
+                { title: 'Data Visualization using Matplotlib & Seaborn', cat: 'Data Science', isPremium: true },
+                { title: 'Statistical Analysis for Data Scientists', cat: 'Data Science', isPremium: false },
+                // Core CSE
+                { title: 'Operating Systems: CPU Scheduling & Deadlocks', cat: 'Core CSE', isPremium: true },
+                { title: 'Database Management Systems (SQL + NoSQL)', cat: 'Core CSE', isPremium: true },
+                { title: 'Compiler Design: Unit 1 to 5 Handwritten', cat: 'Core CSE', isPremium: false },
+                // Mechanical
+                { title: 'Thermodynamics Laws & Numerical Solved', cat: 'Mechanical', isPremium: true },
+                { title: 'Fluid Mechanics - Topper Handwritten', cat: 'Mechanical', isPremium: false },
+                // Electrical
+                { title: 'Circuit Theory & Network Analysis', cat: 'Electrical', isPremium: true },
+                { title: 'Control Systems - Full Revision Guide', cat: 'Electrical', isPremium: false },
+                // Electronics
+                { title: 'Digital Electronics Logic Gates Setup', cat: 'Electronics', isPremium: false },
+                { title: 'Microprocessors (8085/8086) Complete Notes', cat: 'Electronics', isPremium: true }
+            ];
+
+            const saved = localStorage.getItem('ns_notes_final');
+            this.notes = saved ? JSON.parse(saved) : initialNotes;
+            
+            const earnings = localStorage.getItem('ns_earnings');
+            this.totalEarnings = earnings ? parseInt(earnings) : 0;
+            if(localStorage.getItem('ns_user')) this.isLoggedIn = true;
+        },
         methods: {
-            handleFile(e) { this.selectedFile = e.target.files[0]; },
+            login() { 
+                if(!this.authForm.email) return alert("Email daalein!");
+                this.isLoggedIn = true; 
+                localStorage.setItem('ns_user', 'active'); 
+            },
+            logout() { this.isLoggedIn = false; localStorage.removeItem('ns_user'); },
             publishNow() {
-                if(!this.form.title || !this.selectedFile) return alert("Pehle Title aur File select karein!");
-                this.notes.unshift({
-                    title: this.form.title, cat: this.form.cat, isPremium: this.form.isPremium,
-                    fileName: this.selectedFile.name
-                });
-                this.showUpload = false; this.selectedFile = null; this.form.title = '';
-                alert("Success! Aapka note upload ho gaya aur Live hai.");
+                if(!this.form.title) return alert("Title bhariye!");
+                this.notes.unshift({ ...this.form });
+                this.saveData();
+                this.showUpload = false;
+                this.form.title = '';
+                alert("Notes published successfully!");
             },
             buyNote(note) {
                 if(note.isPremium) {
-                    if(confirm(`Is Premium Note ki keemat ₹49 hai. Payment ke liye OK karein?`)) alert("Payment Received! Download Started.");
-                } else { alert("Free Note download shuru ho raha hai..."); }
+                    if(confirm("Purchase this premium note for ₹49?")) {
+                        this.totalEarnings += 49;
+                        localStorage.setItem('ns_earnings', this.totalEarnings);
+                        alert("Note Unlocked! Starting Download...");
+                    }
+                } else { alert("Downloading Free PDF..."); }
             },
-            async callGemini() {
-                if(!this.userMsg.trim()) return;
-                const msg = this.userMsg;
-                this.chatMessages.push({ role: 'user', text: msg });
-                this.userMsg = '';
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: `Answer as a CS Professor. Question: ${msg}` }] }] })
-                    });
-                    const data = await res.json();
-                    this.chatMessages.push({ role: 'bot', text: data.candidates[0].content.parts[0].text });
-                } catch (e) {
-                    this.chatMessages.push({ role: 'bot', text: "AI प्रोफेसर अभी बिजी हैं. अपनी API Key चेक करें!" });
-                } finally {
-                    setTimeout(() => { document.getElementById('chatbox').scrollTop = 99999; }, 100);
-                }
-            }
+            saveData() { localStorage.setItem('ns_notes_final', JSON.stringify(this.notes)); },
+            resetFilters() { this.selectedCat = 'All'; this.searchQuery = ''; }
         }
     }).mount('#app')
 </script>
 </body>
 </html>
+                  
+                   
